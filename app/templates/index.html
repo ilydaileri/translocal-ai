@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartLead AI - Asistan</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f4f6f9; margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .container { width: 100%; max-width: 500px; background: #fff; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); padding: 20px; }
+        h2 { margin-top: 0; color: #333; text-align: center; }
+        .chat-box { height: 280px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; margin-bottom: 12px; background: #fafafa; display: flex; flex-direction: column; gap: 8px; }
+        .msg { padding: 8px 12px; border-radius: 6px; max-width: 80%; font-size: 14px; line-height: 1.4; }
+        .user { align-self: flex-end; background: #2563eb; color: #fff; }
+        .bot { align-self: flex-start; background: #e5e7eb; color: #111; }
+        .input-row { display: flex; gap: 8px; margin-bottom: 20px; }
+        input[type="text"], input[type="tel"] { flex: 1; padding: 10px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 14px; }
+        button { padding: 10px 16px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #1d4ed8; }
+        hr { border: none; border-top: 1px solid #e2e8f0; margin: 20px 0; }
+        .form-group { margin-bottom: 10px; }
+        .form-group label { display: block; font-size: 12px; color: #64748b; margin-bottom: 4px; }
+        .form-group input { width: 100%; box-sizing: border-box; }
+        #durum { font-size: 13px; text-align: center; margin-top: 8px; font-weight: 500; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>SmartLead Asistan</h2>
+    
+    <div id="chatBox" class="chat-box">
+        <div class="msg bot">Merhaba! Size nasıl yardımcı olabilirim?</div>
+    </div>
+
+    <div class="input-row">
+        <input type="text" id="kullaniciMesaj" placeholder="Mesajınızı yazın..." onkeydown="if(event.key==='Enter') mesajGonder()">
+        <button onclick="mesajGonder()">Gönder</button>
+    </div>
+
+    <hr>
+
+    <h3>İletişim Bilgileri Bırakın</h3>
+    <div class="form-group">
+        <label for="isim">Ad Soyad</label>
+        <input type="text" id="isim" placeholder="Adınız">
+    </div>
+    <div class="form-group">
+        <label for="telefon">Telefon Numarası</label>
+        <input type="tel" id="telefon" placeholder="05xx xxx xx xx">
+    </div>
+    <button style="width: 100%; background: #059669;" onclick="adayKaydet()">Bilgileri Gönder</button>
+    <div id="durum"></div>
+</div>
+
+<script>
+    let gecmis = [];
+
+    async function mesajGonder() {
+        const input = document.getElementById("kullaniciMesaj");
+        const mesaj = input.value.trim();
+        if (!mesaj) return;
+
+        const chatBox = document.getElementById("chatBox");
+        chatBox.innerHTML += `<div class="msg user">${mesaj}</div>`;
+        input.value = "";
+        chatBox.scrollTop = chatBox.scrollHeight;
+
+        try {
+            const res = await fetch("/api/sohbet", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ mesaj: mesaj, gecmis: gecmis })
+            });
+            const data = await res.json();
+            
+            if (data.basari) {
+                chatBox.innerHTML += `<div class="msg bot">${data.cevap}</div>`;
+                gecmis.push({ role: "user", content: mesaj });
+                gecmis.push({ role: "assistant", content: data.cevap });
+            } else {
+                chatBox.innerHTML += `<div class="msg bot" style="color:red;">Hata: ${data.hata}</div>`;
+            }
+        } catch (e) {
+            chatBox.innerHTML += `<div class="msg bot" style="color:red;">Sunucuya bağlanılamadı.</div>`;
+        }
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    async function adayKaydet() {
+        const isim = document.getElementById("isim").value.trim();
+        const telefon = document.getElementById("telefon").value.trim();
+        const durum = document.getElementById("durum");
+
+        if (!isim || !telefon) {
+            durum.style.color = "red";
+            durum.innerText = "Lütfen isim ve telefon giriniz.";
+            return;
+        }
+
+        try {
+            const res = await fetch("/api/adaylar", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ isim, telefon, mesaj: "Web formundan gönderildi." })
+            });
+            const data = await res.json();
+
+            if (data.basari) {
+                durum.style.color = "green";
+                durum.innerText = data.mesaj;
+                document.getElementById("isim").value = "";
+                document.getElementById("telefon").value = "";
+            } else {
+                durum.style.color = "red";
+                durum.innerText = data.hata;
+            }
+        } catch (e) {
+            durum.style.color = "red";
+            durum.innerText = "Kayıt sırasında hata oluştu.";
+        }
+    }
+</script>
+
+</body>
+</html>
