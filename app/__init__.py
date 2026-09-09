@@ -25,17 +25,22 @@ def create_app(config_class=None):
     app.config.setdefault("DATABASE_URL", getattr(config, "DATABASE_URL", "smartlead.db"))
 
     # 2. CORS Yapılandırması (Hem Wix canlı sitesi hem yerel testler için)
-    CORS(app, resources={
-        r"/*": {
-            "origins": [
-                "https://ilaydaileri.wixsite.com",
-                r"https://.*\.wixsite\.com",
-                r"https://.*\.wixstudio\.io",
-                "http://localhost:5000",
-                "http://127.0.0.1:5000"
-            ]
-        }
-    })
+    CORS(app,resources={
+            r"/api/*": {
+                "origins": "*"
+            }
+        })
+    #  resources={
+    #     r"/*": {
+    #         "origins": [
+    #             "https://ilaydaileri.wixsite.com",
+    #             r"https://.*\.wixsite\.com",
+    #             r"https://.*\.wixstudio\.io",
+    #             "http://localhost:5000",
+    #             "http://127.0.0.1:5000"
+    #         ]
+    #     }
+    # }
 
     # 3. Veritabanını Başlat
     veritabani_baslat(app)
